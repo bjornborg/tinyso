@@ -25,14 +25,14 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
-#include "tinysoa.hpp"
+#include "tinyso.hpp"
 
 TEST_CASE("Genetic algorithm")
 {
   double const min_x = 2.0;
   double const min_y = 5.0;
 
-  auto evaluate = [&min_x, &min_y](tinysoa::Individual const &individual, uint32_t const) -> double
+  auto evaluate = [&min_x, &min_y](tinyso::Individual const &individual, uint32_t const) -> double
   {
     double x = 20.0 * individual[0] - 10.0;
     double y = 20.0 * individual[1] - 10.0;
@@ -40,7 +40,7 @@ TEST_CASE("Genetic algorithm")
     return 1.0 / z;
   };
 
-  tinysoa::GeneticAlgorithm ga(evaluate, tinysoa::CrossoverMethod::Split, 2, 1, 
+  tinyso::GeneticAlgorithm ga(evaluate, tinyso::CrossoverMethod::Split, 2, 1, 
       30, 2, 0.5, 0.05, 0.5);
 
   for (uint32_t i = 0; i < 1000; i++) {

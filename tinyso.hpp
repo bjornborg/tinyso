@@ -34,7 +34,7 @@
 #include <utility>
 #include <vector>
 
-namespace tinysoa {
+namespace tinyso {
 
 typedef std::vector<double> Fitnesses;
 typedef std::vector<double> Individual;
