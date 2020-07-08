@@ -55,6 +55,8 @@ class GeneticAlgorithm {
     Individual GetBestIndividual() const;
     int32_t GetGenerationIndex() const;
     void NextGeneration(uint32_t const);
+    Population GetPopulation() const;
+    Fitnesses GetFitnesses() const;
 
   private:
     GeneticAlgorithm(GeneticAlgorithm const &);
@@ -174,26 +176,36 @@ inline Fitnesses GeneticAlgorithm::EvaluatePopulation(Population const &populati
     uint32_t const cores)
 {
   Fitnesses fitnesses(m_population_size);
-
+  std::mutex selection_mutex;
+  std::mutex fitness_write_mutex;
   uint32_t evaluated = 0;
-  while (evaluated < m_population_size) {
-    uint32_t not_evaluated = m_population_size - evaluated;
-    uint32_t threads = (cores < not_evaluated) ? cores : not_evaluated;
 
-    std::vector<std::future<double>> future_fitnesses(threads);
-    for (uint32_t j = 0; j < threads; ++j) {
-      uint32_t k = evaluated + j;
-      Individual individual = population[k];
-      future_fitnesses[j] =
-        std::async(std::launch::async, m_evaluate_individual, individual, k);
+  auto worker{[this, &population, &fitnesses, &evaluated, &selection_mutex,
+    &fitness_write_mutex]() {
+    while (evaluated < m_population_size) {
+      uint32_t index;
+      {
+        std::lock_guard<std::mutex> lock(selection_mutex);
+        if (evaluated >= m_population_size) {
+          break;
+        }
+        index = evaluated;
+        evaluated++;
+      }
+      double fitness = m_evaluate_individual(population[index], index);
+      {
+        std::lock_guard<std::mutex> lock(fitness_write_mutex);
+        fitnesses[index] = fitness;
+      }
     }
+  }};
 
-    for (uint32_t j = 0; j < threads; ++j) {
-      uint32_t k = evaluated + j;
-      fitnesses[k] = future_fitnesses[j].get();
-    }
-
-    evaluated += threads;
+  std::vector<std::thread> threads;
+  for (uint32_t i{0}; i < cores; i++) {
+    threads.push_back(std::thread(worker));
+  }
+  for (auto &t : threads) {
+    t.join();
   }
 
   return fitnesses;
@@ -227,6 +239,16 @@ inline int32_t GeneticAlgorithm::GetGenerationIndex() const
   return m_generation_index;
 }
 
+inline Population GeneticAlgorithm::GetPopulation() const
+{
+  return m_population;
+}
+
+inline Fitnesses GeneticAlgorithm::GetFitnesses() const
+{
+  return m_fitnesses;
+}
+
 inline uint32_t GeneticAlgorithm::GetRandomInteger(uint32_t min, uint32_t max)
 {
   std::uniform_int_distribution<uint32_t> int_distribution(min, max);
@@ -235,7 +257,7 @@ inline uint32_t GeneticAlgorithm::GetRandomInteger(uint32_t min, uint32_t max)
 
 inline double GeneticAlgorithm::GetRandomCreep()
 {
-  std::normal_distribution<double> normal_distribution(0.0, 0.1); // TODO.
+  std::normal_distribution<double> normal_distribution(0.0, 0.1);
   return normal_distribution(m_generator);
 }
 
@@ -251,30 +273,30 @@ inline float GeneticAlgorithm::GetRandomFloat()
   return uniform_distribution(m_generator);
 }
 
-inline Individual GeneticAlgorithm::MutateIndividual(Individual const &individual)
+inline Individual GeneticAlgorithm::MutateIndividual(
+    Individual const &individual)
 {
-  uint32_t const individual_length = individual.size();
-  Individual individual_mutated(individual_length);
-
-  for (uint32_t i = 0; i < individual_length; ++i) {
-    float const r = GetRandomFloat();
-    if (r < m_prob_mutation) {
+  float const r = GetRandomFloat();
+  if (r < m_prob_mutation) {
+    uint32_t const individual_length = individual.size();
+    Individual individual_mutated(individual_length);
+    for (uint32_t i = 0; i < individual_length; ++i) {
       double m = GetRandomCreep();
 
       double x = individual[i] + m;
       if (x < 0.0) {
-        x = 0.0;
+        x = -x;
       }
       if (x > 1.0) {
-        x = 1.0;
+        x = 2.0 - x;
       }
 
       individual_mutated[i] = x;
-    } else {
-      individual_mutated[i] = individual[i];
     }
+    return individual_mutated;
+  } else {
+    return individual;
   }
-  return individual_mutated;
 }
 
 inline void GeneticAlgorithm::NextGeneration(uint32_t cores)
@@ -283,9 +305,14 @@ inline void GeneticAlgorithm::NextGeneration(uint32_t cores)
 
   m_fitnesses = EvaluatePopulation(m_population, cores);
 
-  auto result = std::max_element(m_fitnesses.begin(), m_fitnesses.end());
-  uint32_t i_highest = std::distance(m_fitnesses.begin(), result);
-  double highest_fitness = m_fitnesses[i_highest];
+  uint32_t i_highest{0};
+  double highest_fitness{std::numeric_limits<double>::lowest()};
+  for (uint32_t i{0}; i < m_fitnesses.size(); i++) {
+    if (!std::isnan(m_fitnesses[i]) && m_fitnesses[i] > highest_fitness) {
+      i_highest = i;
+      highest_fitness = m_fitnesses[i];
+    }
+  }
 
   if (highest_fitness > m_best_fitness) {
     m_best_fitness = highest_fitness;
@@ -294,15 +321,11 @@ inline void GeneticAlgorithm::NextGeneration(uint32_t cores)
 
   Population population_new(m_population_size);
 
-  uint32_t elites_left = m_elite_size;
-  for (uint32_t i = 0; i < m_population_size; i = i + 2) {
-    if (elites_left >= 2) {
-      population_new[i] = m_best_individual;
-      population_new[i+1] = m_best_individual;
-      elites_left -= 2;
-      continue;
-    }
+  for (uint32_t i{0}; i < m_elite_size; i++) {
+    population_new[i] = m_best_individual;
+  }
 
+  for (uint32_t i{m_elite_size}; i < m_population_size; i = i + 2) {
     Individual individual_selected_1 = SelectTournament(m_population,
         m_fitnesses);
     Individual individual_selected_2 = SelectTournament(m_population,
@@ -311,17 +334,14 @@ inline void GeneticAlgorithm::NextGeneration(uint32_t cores)
     std::pair<Individual, Individual> individual_pair = CrossoverIndividuals(
         individual_selected_1, individual_selected_2);
 
-    if (elites_left == 1) {
-      population_new[i] = m_best_individual;
-      elites_left = 0;
-    } else {
-      Individual individual_mutated_1 =
-        MutateIndividual(individual_pair.first);
-      population_new[i] = individual_mutated_1;
-    }
+    Individual individual_mutated_1 = MutateIndividual(individual_pair.first);
+    population_new[i] = individual_mutated_1;
 
-    Individual individual_mutated_2 = MutateIndividual(individual_pair.second);
-    population_new[i+1] = individual_mutated_2;
+    if (i + 1 < m_population_size) {
+      Individual individual_mutated_2 = MutateIndividual(
+          individual_pair.second);
+      population_new[i + 1] = individual_mutated_2;
+    }
   }
 
   m_population = population_new;
