@@ -57,6 +57,10 @@ class GeneticAlgorithm {
     void NextGeneration(uint32_t const);
     Population GetPopulation() const;
     Fitnesses GetFitnesses() const;
+    void SetCrossoverIndividuals(
+        std::function<std::pair<Individual, Individual>(Individual const &,
+          Individual const &)>);
+    void SetMutateIndividual(std::function<Individual(Individual const &)>);
 
   private:
     GeneticAlgorithm(GeneticAlgorithm const &);
@@ -73,8 +77,11 @@ class GeneticAlgorithm {
     Individual SelectTournament(Population const &, Fitnesses const &);
 
     std::default_random_engine m_generator;
+    std::function<std::pair<Individual, Individual>(Individual const &,
+        Individual const &)> m_crossover_individuals;
     std::function<double(Individual const &, uint32_t const)> 
       m_evaluate_individual;
+    std::function<Individual(Individual const &)> m_mutate_individual;
     CrossoverMethod m_crossover_method;
     Fitnesses m_fitnesses;
     Individual m_best_individual;
@@ -96,7 +103,9 @@ inline GeneticAlgorithm::GeneticAlgorithm(
     uint32_t const tournament_size, float prob_crossover, float prob_mutation,
     float prob_select_tournament):
   m_generator(time(0)),
+  m_crossover_individuals(nullptr),
   m_evaluate_individual(evaluate_individual),
+  m_mutate_individual(nullptr),
   m_crossover_method(crossover_method),
   m_fitnesses(),
   m_best_individual(),
@@ -120,6 +129,10 @@ inline GeneticAlgorithm::~GeneticAlgorithm()
 inline std::pair<Individual, Individual> GeneticAlgorithm::CrossoverIndividuals(
     Individual const &individual_1, Individual const &individual_2)
 {
+  if (m_crossover_individuals != nullptr) {
+    return m_crossover_individuals(individual_1, individual_2);
+  }
+
   switch (m_crossover_method) {
     case CrossoverMethod::Shuffle:
       {
@@ -276,6 +289,10 @@ inline float GeneticAlgorithm::GetRandomFloat()
 inline Individual GeneticAlgorithm::MutateIndividual(
     Individual const &individual)
 {
+  if (m_mutate_individual != nullptr) {
+    return m_mutate_individual(individual);
+  }
+
   float const r = GetRandomFloat();
   if (r < m_prob_mutation) {
     uint32_t const individual_length = individual.size();
@@ -367,6 +384,18 @@ inline Individual GeneticAlgorithm::SelectTournament(Population const &populatio
   return population[index_best];
 }
 
+void GeneticAlgorithm::SetCrossoverIndividuals(std::function<std::pair<
+    Individual, Individual>(Individual const &, Individual const &)> 
+    crossover_individuals)
+{
+  m_crossover_individuals = crossover_individuals;
+}
+
+void GeneticAlgorithm::SetMutateIndividual(
+    std::function<Individual(Individual const &)> mutate_individual)
+{
+  m_mutate_individual = mutate_individual;
+}
 
 }
 
