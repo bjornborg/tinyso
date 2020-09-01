@@ -1,4 +1,0 @@
-/home/ola/projects/repos/chalmers/tinyso/b/CMakeFiles/rebuild_cache.dir
-/home/ola/projects/repos/chalmers/tinyso/b/CMakeFiles/edit_cache.dir
-/home/ola/projects/repos/chalmers/tinyso/b/CMakeFiles/test.dir
-/home/ola/projects/repos/chalmers/tinyso/b/CMakeFiles/tinyso-runner.dir
