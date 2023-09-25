@@ -1,0 +1,3 @@
+[submodule "thirdparty/gnuplot-iostream"]
+	path = thirdparty/gnuplot-iostream
+	url = https://github.com/bjornborg/gnuplot-iostream.git

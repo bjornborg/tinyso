@@ -1,4 +1,4 @@
-#MIT License
+# MIT License
 #
 # Copyright (c) 2018 Ola Benderius
 #
@@ -23,37 +23,49 @@
 cmake_minimum_required(VERSION 3.2)
 
 project(tinyso)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 if(NOT WIN32)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-        -D_XOPEN_SOURCE=700 \
-        -D_FORTIFY_SOURCE=2 \
-        -O2 \
-        -fstack-protector \
-        -fomit-frame-pointer \
-        -pipe \
-        -pedantic -pedantic-errors \
-        -Werror \
-        -Weffc++ \
-        -Wall -Wextra -Wshadow -Wdeprecated \
-        -Wdiv-by-zero -Wfloat-equal -Wsign-compare -Wpointer-arith \
-        -Wuninitialized -Wunreachable-code \
-        -Wunused -Wunused-function -Wunused-label -Wunused-parameter -Wunused-but-set-parameter -Wunused-but-set-variable \
-        -Wunused-value -Wunused-variable -Wunused-result \
-        -Wmissing-field-initializers -Wmissing-format-attribute -Wmissing-include-dirs -Wmissing-noreturn")
+  set(CMAKE_CXX_FLAGS
+      "${CMAKE_CXX_FLAGS} \
+        -O3 \
+        -Wall")
 endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/thirdparty)
 
-set(LIBRARIES Threads::Threads)
+# ##############################################################################
+# gnuplot-iostream lib
+find_package(Boost REQUIRED COMPONENTS iostreams system filesystem)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/gnuplot-iostream)
+set(GnuPlotIostream_BuildTests
+    OFF
+    CACHE INTERNAL "build gnuplot iostream tests" FORCE)
+set(GnuPlotIostream_BuildExamples
+    OFF
+    CACHE INTERNAL "build gnuplot iostream examples" FORCE)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/gnuplot-iostream)
+set(LIBRARIES ${LIBRARIES} gnuplot_iostream Boost::iostreams Boost::system
+              Boost::filesystem)
+
+set(LIBRARIES ${LIBRARIES} Threads::Threads)
 
 enable_testing()
-add_executable(${PROJECT_NAME}-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/test-ga.cpp)
-target_link_libraries(${PROJECT_NAME}-runner ${LIBRARIES})
-add_test(NAME ${PROJECT_NAME}-runner COMMAND ${PROJECT_NAME}-runner)
+add_executable(
+  ${PROJECT_NAME}-ga-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/test-ga.cpp
+  # $<TARGET_OBJECTS:tinyso-core>
+)
+target_link_libraries(${PROJECT_NAME}-ga-runner ${LIBRARIES})
+add_test(NAME ${PROJECT_NAME}-ga-runner COMMAND ${PROJECT_NAME}-ga-runner)
 
+add_executable(
+  ${PROJECT_NAME}-pso-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/test-pso.cpp
+  # $<TARGET_OBJECTS:tinyso-core>
+)
+target_link_libraries(${PROJECT_NAME}-pso-runner ${LIBRARIES})
+add_test(NAME ${PROJECT_NAME}-pso-runner COMMAND ${PROJECT_NAME}-pso-runner)

@@ -40,11 +40,12 @@ TEST_CASE("Genetic algorithm")
     return 1.0 / z;
   };
 
-  tinyso::GeneticAlgorithm ga(evaluate, tinyso::CrossoverMethod::Split, 2, 1, 
-      30, 2, 0.5, 0.05, 0.5);
+  tinyso::GeneticAlgorithm ga(evaluate, tinyso::CrossoverMethod::Split, 2, 1,
+                              30, 2, 0.5, 0.05, 0.5);
 
-  for (uint32_t i = 0; i < 1000; i++) {
-    ga.NextGeneration(4);
+  for (uint32_t i = 0; i < 1000; i++)
+  {
+    ga.NextGeneration(16);
     auto ind = ga.GetBestIndividual();
 
     double x = 20.0 * ind[0] - 10.0;
