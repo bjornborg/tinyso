@@ -5,9 +5,9 @@
 // #include <ctime>
 #include <cstdint>
 #include <future>
-#include <iostream>
-#include <random>
-#include <utility>
+// #include <iostream>
+// #include <random>
+// #include <utility>
 #include <vector>
 
 #include <eigen3/Eigen/Dense>
@@ -19,6 +19,7 @@ struct PsoSettings
 {
   std::function<double(Particle const &)> objectiveFunction;
   std::function<bool(Particle const &)> plotFunction;
+  std::function<void(Particle const &, std::shared_ptr<PsoSettings> const &)> printResultFunction;
   uint32_t particleRow{0}; // dimensionality
   uint32_t particleCol{0}; // number of bumps, may be increased after a while
   uint32_t swarmSize{0};
@@ -76,7 +77,7 @@ private:
   Eigen::MatrixXd m_bestPosition;
 };
 
-Particle::Particle(std::shared_ptr<PsoSettings> const &a_settings)
+inline Particle::Particle(std::shared_ptr<PsoSettings> const &a_settings)
     : m_name{"[Pso particle] "},
       m_settings{a_settings},
       m_position{initPosition()},
@@ -94,15 +95,15 @@ Particle::Particle(std::shared_ptr<PsoSettings> const &a_settings)
   m_permutation.setIdentity();
 }
 
-Particle::~Particle() {}
+inline Particle::~Particle() {}
 
-bool Particle::step()
+inline bool Particle::step()
 {
   return setPosition(m_position + m_velocity * m_settings->dt);
 }
 
 // Return position in uniform random in range [posMin, posMax]
-bool Particle::evaluateCurrentFitness()
+inline bool Particle::evaluateCurrentFitness()
 {
   m_currentFitness = m_settings->objectiveFunction(*this);
   if (m_currentFitness > m_bestFitness)
@@ -113,12 +114,12 @@ bool Particle::evaluateCurrentFitness()
   return true;
 }
 
-Eigen::MatrixXd Particle::getPosition() const
+inline Eigen::MatrixXd Particle::getPosition() const
 {
   return m_position;
 }
 
-bool Particle::setPosition(Eigen::MatrixXd const &a_position)
+inline bool Particle::setPosition(Eigen::MatrixXd const &a_position)
 {
   // 2023-09-21 16:42:45 bb |  Clamp the position within defined box set
   m_position = a_position.cwiseMin(m_settings->posMax.replicate(1, m_settings->particleCol)).cwiseMax(m_settings->posMin.replicate(1, m_settings->particleCol));
@@ -134,7 +135,7 @@ bool Particle::setPosition(Eigen::MatrixXd const &a_position)
   return true;
 }
 
-bool Particle::setGuess(Eigen::MatrixXd const &a_guess)
+inline bool Particle::setGuess(Eigen::MatrixXd const &a_guess)
 {
 
   Eigen::MatrixXd guess = initPosition();
@@ -145,12 +146,12 @@ bool Particle::setGuess(Eigen::MatrixXd const &a_guess)
   return setPosition(guess);
 }
 
-Eigen::MatrixXd Particle::getVelocity() const
+inline Eigen::MatrixXd Particle::getVelocity() const
 {
   return m_velocity;
 }
 
-bool Particle::setVelocity(Eigen::MatrixXd const &a_velocity)
+inline bool Particle::setVelocity(Eigen::MatrixXd const &a_velocity)
 {
   // Clamp the velocity within the speedMax limits
   // Using the euclidian norm might be computational taxing. If it's too maxing, might consider to switch over box clamping instead.
@@ -160,7 +161,7 @@ bool Particle::setVelocity(Eigen::MatrixXd const &a_velocity)
   return true;
 }
 
-bool Particle::updateVelocity(Particle const &a_particleBest)
+inline bool Particle::updateVelocity(Particle const &a_particleBest)
 {
   // Eigen::MatrixXd newVelocity;
   Eigen::Vector3d r{Eigen::Vector3d::Random().cwiseAbs()}; // stochastic varibles [0,1)
@@ -190,7 +191,7 @@ bool Particle::updateVelocity(Particle const &a_particleBest)
 }
 
 // 2023-09-21 16:48:32 bb | Only support increasing resize
-bool Particle::resize()
+inline bool Particle::resize()
 {
   m_permutation.resize(m_settings->particleCol);
   m_permutation.setIdentity();
@@ -219,17 +220,17 @@ bool Particle::resize()
   return true;
 }
 
-std::tuple<double, Eigen::MatrixXd> Particle::getBestFitness() const
+inline std::tuple<double, Eigen::MatrixXd> Particle::getBestFitness() const
 {
   return std::make_tuple(m_bestFitness, m_bestPosition);
 }
 
-std::tuple<double, Eigen::MatrixXd> Particle::getCurrentFitness() const
+inline std::tuple<double, Eigen::MatrixXd> Particle::getCurrentFitness() const
 {
   return std::make_tuple(m_currentFitness, m_position);
 }
 
-Eigen::MatrixXd Particle::initPosition()
+inline Eigen::MatrixXd Particle::initPosition()
 {
   Eigen::MatrixXd position =
       m_settings->posMin.replicate(1, m_settings->particleCol).array() +
@@ -239,7 +240,7 @@ Eigen::MatrixXd Particle::initPosition()
   return position;
 }
 
-Eigen::MatrixXd Particle::initVelocity()
+inline Eigen::MatrixXd Particle::initVelocity()
 {
   Eigen::MatrixXd velocity =
       m_settings->alpha / m_settings->dt +
@@ -327,7 +328,7 @@ inline bool ParticleSwarmOptimization::step()
   // check and resize
   if (m_swarm.front().getPosition().cols() != m_psoSettings->particleCol)
   {
-    std::clog << "Resizing to " << std::to_string(m_psoSettings->particleCol) << " cols." << std::endl;
+    // std::clog << "Resizing to " << std::to_string(m_psoSettings->particleCol) << " cols." << std::endl;
     for (auto &particle : m_swarm)
     {
       particle.resize();
@@ -335,16 +336,6 @@ inline bool ParticleSwarmOptimization::step()
   }
   // 2023-09-21 16:17:09 bb | Evaluate the swarm
   evaluateSwarm(m_swarm, m_fitnesses, m_bestParticleIndex, m_convergeCounter, m_psoSettings->threads);
-  // m_bestParticle = findBestParticle(m_swarm, m_fitnesses);
-  // for (size_t n{0}; n < m_swarm.size(); n++)
-  // // for (auto const &fitness : m_fitnesses)
-  // {
-  //   std::cout << "f: " << std::to_string(m_fitnesses[n])
-  //             << "\n"
-  //             << m_swarm[n].getPosition()
-  //             << "\n";
-  // }
-  // std::cout << "======================================================================" << std::endl;
   stepSwarm(m_swarm, m_fitnesses, m_bestParticleIndex, m_psoSettings->threads);
 
   return true;
@@ -368,13 +359,6 @@ inline Particle ParticleSwarmOptimization::runOptimization()
     }
     Particle candidate = getBestParticle();
     // auto const fitness = candidate.getBestFitness();
-    std::cout
-        << "Best Particle fitness = " << std::get<0>(candidate.getBestFitness())
-        << "\n"
-        << "inertia = " << m_psoSettings->inertia
-        << "\n"
-        << std::get<1>(candidate.getBestFitness())
-        << std::endl;
 
     // the  0.1 is to avoid overfitting
     if (std::get<0>(candidate.getBestFitness()) < std::get<0>(bestParticle.getBestFitness()))
@@ -391,6 +375,9 @@ inline Particle ParticleSwarmOptimization::runOptimization()
   }
   // truncate and remove trivial solutions in the particle
   bestParticle = trimTruncate(bestParticle);
+
+  if (m_psoSettings->printResultFunction)
+    m_psoSettings->printResultFunction(bestParticle, m_psoSettings);
 
   return bestParticle;
 }
