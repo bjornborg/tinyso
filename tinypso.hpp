@@ -40,6 +40,8 @@ struct PsoSettings
   uint32_t numSteps{1000};
   uint32_t threads{16};
   uint32_t convergeIterations{100};
+  double minumumFitness{1.0};
+  uint32_t maxCol{5};
 };
 
 class Particle
@@ -190,7 +192,6 @@ inline bool Particle::updateVelocity(Particle const &a_particleBest)
   return true;
 }
 
-// 2023-09-21 16:48:32 bb | Only support increasing resize
 inline bool Particle::resize()
 {
   m_permutation.resize(m_settings->particleCol);
@@ -199,15 +200,24 @@ inline bool Particle::resize()
   auto newVelocity = initVelocity();
   if (m_velocity.cols() <= newVelocity.cols())
     newVelocity.leftCols(m_velocity.cols()) = m_velocity;
+  else
+    newVelocity = m_velocity.leftCols(newVelocity.cols());
+
   setVelocity(newVelocity);
 
   auto newPosition = initPosition();
   if (m_position.cols() <= newPosition.cols())
     newPosition.leftCols(m_position.cols()) = m_position;
+  else
+    newPosition = m_position.leftCols(newPosition.cols());
+
   setPosition(newPosition);
 
   if (m_bestPosition.cols() <= newPosition.cols())
     newPosition.leftCols(m_bestPosition.cols()) = m_bestPosition;
+  else
+    newPosition = m_bestPosition.leftCols(newPosition.cols());
+
   std::sort(m_permutation.indices().begin(), m_permutation.indices().end(),
             [data = newPosition.row(1)](int32_t const &a, int32_t const &b)
             { return data[a] < data[b]; });
@@ -333,6 +343,7 @@ inline bool ParticleSwarmOptimization::step()
     {
       particle.resize();
     }
+    m_bestParticleIndex = 0;
   }
   // 2023-09-21 16:17:09 bb | Evaluate the swarm
   evaluateSwarm(m_swarm, m_fitnesses, m_bestParticleIndex, m_convergeCounter, m_psoSettings->threads);
@@ -360,10 +371,11 @@ inline Particle ParticleSwarmOptimization::runOptimization()
     Particle candidate = getBestParticle();
     // auto const fitness = candidate.getBestFitness();
 
-    // the  0.1 is to avoid overfitting
-    if (std::get<0>(candidate.getBestFitness()) < std::get<0>(bestParticle.getBestFitness()))
+    if ((std::get<0>(candidate.getBestFitness()) < std::get<0>(bestParticle.getBestFitness()) &&
+         std::get<0>(bestParticle.getBestFitness()) > m_psoSettings->minumumFitness) ||
+        m_psoSettings->particleCol > m_psoSettings->maxCol)
     {
-      // Found a good solution with minimal improvements
+      // 2023-10-04 13:57:18 bb | Found a good solution with minimal improvements and a minimal requirement of some base score
       converged = true;
     }
     else
