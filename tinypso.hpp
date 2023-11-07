@@ -2,15 +2,10 @@
 
 #include <algorithm>
 #include <cmath>
-// #include <ctime>
 #include <cstdint>
-#include <future>
-// #include <iostream>
-// #include <random>
-// #include <utility>
-#include <vector>
-
 #include <eigen3/Eigen/Dense>
+#include <future>
+#include <vector>
 
 class Particle; // 2023-09-25 13:04:01 bb |  Probably ok?
 typedef std::vector<Particle> Swarm;
