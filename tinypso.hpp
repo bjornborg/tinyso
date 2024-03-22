@@ -514,6 +514,8 @@ inline Swarm ParticleSwarmOptimization::generatePopulation(
 
 inline double ParticleSwarmOptimization::updateInertia(double const a_inertia, double const a_beta) const
 {
+  (void)a_beta;
+  // a_beta is the m_psoSettings->inertiaDecay
   return std::clamp(a_inertia * m_psoSettings->inertiaDecay, m_psoSettings->minInertia, m_psoSettings->maxInertia);
 }
 
