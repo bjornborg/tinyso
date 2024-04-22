@@ -35,7 +35,7 @@ struct PsoSettings
   uint32_t numSteps{1000};
   uint32_t threads{16};
   uint32_t convergeIterations{100};
-  double minumumFitness{1.0};
+  double minimumFitness{1.0};
   uint32_t maxCol{5};
 };
 
@@ -367,7 +367,7 @@ inline Particle ParticleSwarmOptimization::runOptimization()
     // auto const fitness = candidate.getBestFitness();
 
     if ((std::get<0>(candidate.getBestFitness()) < std::get<0>(bestParticle.getBestFitness()) &&
-         std::get<0>(bestParticle.getBestFitness()) > m_psoSettings->minumumFitness) ||
+         std::get<0>(bestParticle.getBestFitness()) > m_psoSettings->minimumFitness) ||
         m_psoSettings->particleCol > m_psoSettings->maxCol)
     {
       // 2023-10-04 13:57:18 bb | Found a good solution with minimal improvements and a minimal requirement of some base score
