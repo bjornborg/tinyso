@@ -20,17 +20,30 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.10)
 
 project(tinyso)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 if(NOT WIN32)
+  set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} \
+      -D_FORTIFY_SOURCE=2 -O3 -s")
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} \
+      -g -fsanitize=thread")
+  # -fsanitize=address
   set(CMAKE_CXX_FLAGS
       "${CMAKE_CXX_FLAGS} \
-        -O3 \
-        -Wall")
+      -D_XOPEN_SOURCE=700 -fstack-protector \
+      -fomit-frame-pointer -pipe -pedantic -pedantic-errors -Werror -Weffc++ \
+      -Wall -Wextra -Wshadow -Wdeprecated -Wdiv-by-zero -Wfloat-equal \
+      -Wfloat-conversion -Wsign-compare -Wpointer-arith -Wuninitialized \
+      -Wunreachable-code -Wunused -Wunused-function -Wunused-label \
+      -Wunused-parameter -Wunused-but-set-parameter -Wunused-but-set-variable \
+      -Wunused-value -Wunused-variable -Wunused-result \
+      -Wmissing-field-initializers -Wmissing-format-attribute \
+      -Wmissing-include-dirs -Wmissing-noreturn")
 endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)

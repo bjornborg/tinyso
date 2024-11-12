@@ -1,3 +1,26 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2024 Björnborg Nguyen
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 #pragma once
 
 #include <algorithm>
@@ -12,31 +35,59 @@ typedef std::vector<Particle> Swarm;
 
 struct PsoSettings
 {
+ public:
+  PsoSettings() :
+    objectiveFunction{},
+    plotFunction{},
+    printResultFunction{},
+    particleRow{0},
+    particleCol{0},
+    swarmSize{0},
+    posMin{},
+    posMax{},
+    initialGuess{},
+    alpha{1.0},
+    dt{1.0},
+    speedMax{1.1},
+    maxInertia{1.4},
+    minInertia{0.3},
+    inertia{},
+    inertiaDecay{0.991},
+    cognitiveFactor{3.0},
+    socialFactor{1.0},
+    m_probCrazy{0.001},
+    numSteps{400},
+    threads{16},
+    convergeIterations{50},
+    minimumFitness{1.0},
+    maxCol{6} {};
+
+
   std::function<double(Particle const &)> objectiveFunction;
   std::function<bool(Particle const &)> plotFunction;
-  std::function<void(Particle const &, std::shared_ptr<PsoSettings> const &)> printResultFunction;
-  uint32_t particleRow{0}; // dimensionality
-  uint32_t particleCol{0}; // number of bumps, may be increased after a while
-  uint32_t swarmSize{0};
+  std::function<void(Particle const &, std::shared_ptr<PsoSettings> const &)>
+      printResultFunction;
+  uint32_t particleRow; // dimensionality
+  uint32_t particleCol; // number of bumps, may be increased after a while
+  uint32_t swarmSize;
   Eigen::VectorXd posMin;
   Eigen::VectorXd posMax;
   Eigen::VectorXd initialGuess;
-  double alpha{1.0};
-  double dt{1.0};
-  double speedMax{0.0};
-  double maxInertia{1.4}; // exploration vs exploitation, modified throughout the optimization
-  double minInertia{0.3};
-  double inertia{0.0};
-  double inertiaDecay{0.995}; // transforms exploration -> exploitation
-  double cognitiveFactor{2.0};
-  double socialFactor{2.0};
-  double m_probCrazy{0.001}; // actually makes it worse?
-
-  uint32_t numSteps{1000};
-  uint32_t threads{16};
-  uint32_t convergeIterations{100};
-  double minimumFitness{1.0};
-  uint32_t maxCol{5};
+  double alpha;
+  double dt;
+  double speedMax;
+  double maxInertia;
+  double minInertia;
+  double inertia; // exploration vs exploitation, modified throughout the optimization
+  double inertiaDecay; // transforms exploration -> exploitation
+  double cognitiveFactor;
+  double socialFactor;
+  double m_probCrazy; // actually makes it worse?
+  uint32_t numSteps;
+  uint32_t threads;
+  uint32_t convergeIterations;
+  double minimumFitness;
+  uint32_t maxCol;
 };
 
 class Particle

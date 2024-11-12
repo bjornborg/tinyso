@@ -188,8 +188,9 @@ TEST_CASE("PSO Curve fitting with normal distributions case 1")
   psoSettings->particleRow = 3; //  dimensionality
   psoSettings->particleCol = 1; // initial number of bump guesses
   psoSettings->swarmSize = 10000;
-  psoSettings->posMin = Eigen::ArrayXd{{yRef.matrix().minCoeff(), x.minCoeff(), 0.00001}};
-  psoSettings->posMax = Eigen::ArrayXd{{yRef.matrix().maxCoeff(), x.maxCoeff(), 0.4}};
+  psoSettings->posMin =
+      Eigen::ArrayXd{{yRef.minCoeff(), x.minCoeff(), 0.00001}};
+  psoSettings->posMax = Eigen::ArrayXd{{yRef.maxCoeff(), x.maxCoeff(), 0.4}};
   // psoSettings->initialGuess = Eigen::ArrayXd{{yRef(optimumCounter), x(optimumCounter), 0.2}}; // not used
   psoSettings->alpha = 1.0;
   psoSettings->dt = 1.0;
