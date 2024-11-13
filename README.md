@@ -6,9 +6,7 @@ tinyso is a small and efficient library written in modern C++ to provide functio
 
 tinyso is available as single-file, header-only library. Insert [tinyso.hpp](https://raw.githubusercontent.com/olbender/tinyso/master/tinyso.hpp) into your project, `#include "tinyso.hpp"`, and compile your project with a modern C++ compiler (C++20 or newer).
 
-
 https://github.com/user-attachments/assets/692c7036-6112-41eb-95ac-e0a21d35f2a2
-
 
 ## Table of Contents
 
@@ -29,9 +27,13 @@ https://github.com/user-attachments/assets/692c7036-6112-41eb-95ac-e0a21d35f2a2
 
 ## Dependencies
 
-No dependencies! All you need is a C++20-compliant compiler as the project ships the following dependencies as part of the source distribution:
+tinyso requires no dependencies! All you need is a C++20-compliant compiler as the project ships the following dependencies as part of the source distribution:
 
 - [Unit Test Framework Catch2](https://github.com/catchorg/Catch2/releases/tag/v2.1.1) - [![License: Boost Software License v1.0](https://img.shields.io/badge/License-Boost%20v1-blue.svg)](http://www.boost.org/LICENSE_1_0.txt) - [Source](https://github.com/olbender/tinyso/blob/master/test/catch.hpp)
+
+tinypso requires:
+
+- [eigen linear algebra library](https://gitlab.com/libeigen/eigen/-/tags/3.4.0)  
 
 ## Installation
 
