@@ -68,17 +68,39 @@ set(LIBRARIES ${LIBRARIES} gnuplot_iostream Boost::iostreams Boost::system
 
 set(LIBRARIES ${LIBRARIES} Threads::Threads)
 
+
+
 enable_testing()
+
+# ##############################################################################
+# GA test
 add_executable(
   ${PROJECT_NAME}-ga-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/test-ga.cpp
-  # $<TARGET_OBJECTS:tinyso-core>
 )
 target_link_libraries(${PROJECT_NAME}-ga-runner ${LIBRARIES})
 add_test(NAME ${PROJECT_NAME}-ga-runner COMMAND ${PROJECT_NAME}-ga-runner)
 
+# ##############################################################################
+# PSO multi gauss test
 add_executable(
-  ${PROJECT_NAME}-pso-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/test-pso.cpp
-  # $<TARGET_OBJECTS:tinyso-core>
+  ${PROJECT_NAME}-pso-multi-gauss-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/test-pso-multi-gauss.cpp
 )
-target_link_libraries(${PROJECT_NAME}-pso-runner ${LIBRARIES})
-add_test(NAME ${PROJECT_NAME}-pso-runner COMMAND ${PROJECT_NAME}-pso-runner)
+target_link_libraries(${PROJECT_NAME}-pso-multi-gauss-runner ${LIBRARIES})
+add_test(NAME ${PROJECT_NAME}-pso-multi-gauss-runner COMMAND ${PROJECT_NAME}-pso-multi-gauss-runner)
+
+
+# ##############################################################################
+# PSO single heavy tail test
+add_executable(
+  ${PROJECT_NAME}-pso-single-heavy-tail-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/test-pso-single-heavy-tail.cpp
+)
+target_link_libraries(${PROJECT_NAME}-pso-single-heavy-tail-runner ${LIBRARIES})
+add_test(NAME ${PROJECT_NAME}-pso-single-heavy-tail-runner COMMAND ${PROJECT_NAME}-pso-single-heavy-tail-runner)
+
+# ##############################################################################
+# PSO multi heavy tail test
+add_executable(
+  ${PROJECT_NAME}-pso-multi-heavy-tail-runner ${CMAKE_CURRENT_SOURCE_DIR}/test/test-pso-multi-heavy-tail.cpp
+)
+target_link_libraries(${PROJECT_NAME}-pso-multi-heavy-tail-runner ${LIBRARIES})
+add_test(NAME ${PROJECT_NAME}-pso-multi-heavy-tail-runner COMMAND ${PROJECT_NAME}-pso-multi-heavy-tail-runner)

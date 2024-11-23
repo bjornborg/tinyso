@@ -432,10 +432,8 @@ inline Particle ParticleSwarmOptimization::runOptimization()
     }
   }
   // truncate and remove trivial solutions in the particle
-  bestParticle = trimTruncate(bestParticle);
+  // bestParticle = trimTruncate(bestParticle);
 
-  if (m_psoSettings->printResultFunction)
-    m_psoSettings->printResultFunction(bestParticle, m_psoSettings);
 
   return bestParticle;
 }

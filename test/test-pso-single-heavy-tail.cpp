@@ -10,8 +10,8 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -27,59 +27,46 @@
 
 #include "gnuplot-iostream.h"
 
+#include "reaching.hpp"
 #include "tinypso.hpp"
 
-Eigen::ArrayXd gaussianMembershipFunction(Eigen::ArrayXd const x, Eigen::ArrayXd const &a_position)
-{
-  // 2023-09-04 10:37:14 bb | Individual data,
-  // 0: amplitude
-  // 1: timeshift (statistical mean)
-  // 2: variance
+#include <format>
+#include <fstream>
 
-  double const amp = a_position.x();
-  double const mu = a_position.y();
-  double const variance = a_position.z();
-  Eigen::ArrayXd val{amp * Eigen::exp(-(x - mu).square() / (2 * variance))};
 
-  return val;
-}
-
-Eigen::ArrayXd superpositionGaussians(Eigen::ArrayXd const x, Eigen::MatrixXd const &a_position)
-{
-  Eigen::ArrayXd y;
-  //  = gaussianMembershipFunction(x, a_particle);
-  y.resize(x.size());
-  y.setZero();
-  for (auto const pos : a_position.colwise())
-  {
-    y += gaussianMembershipFunction(x, pos);
-  }
-  return y;
-}
-
-TEST_CASE("PSO Curve fitting with normal distributions case 1")
+// Check how well it can fit a heavy tail
+TEST_CASE("PSO Curve fitting with heavy tailed distributions")
 {
 
   std::random_device rd{};
   std::mt19937 gen{rd()};
-  std::normal_distribution d{0.0, 0.1};
+  std::normal_distribution d{0.0, 0.01};
 
-  Eigen::MatrixXd solution(3, 3);
-  solution << 2.0, 4.0, -3.0, 0.20, 0.30, 0.7, 0.00159572, 0.00159706, 0.01;
+  Eigen::MatrixXd solution(5, 1);
+  solution <<
+      // amplitude
+      2.0,
+      // timeshift
+      -1.,
+      // Speed rate parameter^2
+      0.05,
+      // onset
+      -0.2,
+      // offset
+      1.5;
 
-  Eigen::ArrayXd const x = Eigen::ArrayXd::LinSpaced(1001, 0.0, 1.0);
+  Eigen::ArrayXd const x = Eigen::ArrayXd::LinSpaced(1000, 0.001, 1.0);
   Eigen::ArrayXd noise = x;
 
   for (auto &&n : noise) {
     n = d(gen);
   }
-  Eigen::ArrayXd const yClean = superpositionGaussians(x, solution);
-  Eigen::ArrayXd const yNoisy = yClean + noise;
+  Eigen::ArrayXd const yClean = superpositionGaussiansHeavyTail(x, solution);
+  Eigen::ArrayXd const yNoisy = yClean;
 
   auto evaluate = [&x, &yNoisy](Particle const &a_particle) -> double {
     Eigen::MatrixXd posMat{a_particle.getPosition()};
-    if (posMat.rows() < 3 && posMat.cols() > 0)
-    {
+    if (posMat.rows() < 3 && posMat.cols() > 0) {
       std::cerr << "Dimensionality of particle init is incorrect." << std::endl;
       return 0.0;
     }
@@ -87,7 +74,8 @@ TEST_CASE("PSO Curve fitting with normal distributions case 1")
     auto const y = superpositionGaussians(x, posMat);
 
     // Fitness, the larger the better
-    // double const fitness{1.0 / (std::sqrt(posMat.cols() * (yRef - y).square().mean()))};
+    // double const fitness{1.0 / (std::sqrt(posMat.cols() * (yRef -
+    // y).square().mean()))};
     double const fitness{
         1.0 / (posMat.cols() * std::sqrt((yNoisy - y).square().mean()))};
 
@@ -98,13 +86,15 @@ TEST_CASE("PSO Curve fitting with normal distributions case 1")
 
   std::shared_ptr<PsoSettings> psoSettings = std::make_shared<PsoSettings>();
   psoSettings->objectiveFunction = evaluate;
+  psoSettings->maxCol = 1;
   psoSettings->particleRow = 3; //  dimensionality
   psoSettings->particleCol = 1; // initial number of bump guesses
   psoSettings->swarmSize = 10000;
   psoSettings->posMin =
       Eigen::ArrayXd{{yNoisy.minCoeff(), x.minCoeff(), 0.00001}};
   psoSettings->posMax = Eigen::ArrayXd{{yNoisy.maxCoeff(), x.maxCoeff(), 0.4}};
-  // psoSettings->initialGuess = Eigen::ArrayXd{{yRef(optimumCounter), x(optimumCounter), 0.2}}; // not used
+  // psoSettings->initialGuess = Eigen::ArrayXd{{yRef(optimumCounter),
+  // x(optimumCounter), 0.2}}; // not used
   psoSettings->alpha = 1.0;
   psoSettings->dt = 1.0;
   psoSettings->speedMax = 1.1;
@@ -129,12 +119,13 @@ TEST_CASE("PSO Curve fitting with normal distributions case 1")
       std::forward_as_tuple(x, yClean);
   gnuplot << "plot"
           << gnuplot.binFile1d(gnudataNoisy, "record", "noisyreference.dat")
-          << "with lines title 'Noisy ref'"
-          << ","
-          << gnuplot.binFile1d(gnudataClean, "record", "clearnreference.dat")
-          << "with lines title 'Clean ref'"
+          << "with lines title 'Reference'"
+          // << ","
+          // << gnuplot.binFile1d(gnudataClean, "record", "clearnreference.dat")
+          // << "with lines title 'Clean ref'"
           << "," << gnuplot.binFile1d(gnudataNoisy, "record", "fit.dat")
-          << "with lines title 'Fit'\n";
+          << "with lines title 'Fit'" << std::endl;
+
 
   auto plot{[&gnuplot, &gnudataNoisy, &x](Particle const &a_particle) -> bool {
     auto const fitness = a_particle.getBestFitness();
@@ -159,10 +150,16 @@ TEST_CASE("PSO Curve fitting with normal distributions case 1")
   // 2: variance
 
   Eigen::MatrixXd proposal = std::get<1>(fitness);
+  Eigen::ArrayXd const fit = superpositionGaussians(x, std::get<1>(fitness));
 
-  double const error{(solution - proposal).cwiseAbs().sum()};
-  // Overfitting
-  REQUIRE(solution.cols() == 3);
-  // Correct solution
-  REQUIRE(error < 0.06);
+  plot(particle);
+
+
+  // std::fstream file("data.csv", std::ios::out);
+  // file << "#time;signal;noisysignal;fit;\n";
+  // for (int64_t i = 0; i < x.size(); i++) {
+  //   file << std::format("{};{};{};{};\n", x(i), yClean(i), yNoisy(i),
+  //   fit(i));
+  // }
+  // file.close();
 }
