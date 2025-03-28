@@ -30,8 +30,8 @@
 #include "reaching.hpp"
 #include "tinypso.hpp"
 
-#include <format>
-#include <fstream>
+// #include <format>
+// #include <fstream>
 
 
 // Check how well it can fit a heavy tail
@@ -40,7 +40,7 @@ TEST_CASE("PSO Curve fitting with heavy tailed distributions")
 
   std::random_device rd{};
   std::mt19937 gen{rd()};
-  std::normal_distribution d{0.0, 0.01};
+  std::normal_distribution d{0.0, 0.1};
 
   Eigen::MatrixXd solution(5, 1);
   solution <<
@@ -62,9 +62,14 @@ TEST_CASE("PSO Curve fitting with heavy tailed distributions")
     n = d(gen);
   }
   Eigen::ArrayXd const yClean = superpositionGaussiansHeavyTail(x, solution);
-  Eigen::ArrayXd const yNoisy = yClean;
+  Eigen::ArrayXd const yNoisy = yClean + noise;
 
-  auto evaluate = [&x, &yNoisy](Particle const &a_particle) -> double {
+  Eigen::Index optimumCounter;
+  yNoisy.abs().matrix().maxCoeff(&optimumCounter);
+
+  std::shared_ptr<PsoSettings> psoSettings = std::make_shared<PsoSettings>();
+  auto evaluate = [&psoSettings, &x, &yNoisy](
+                      Particle const &a_particle) -> double {
     Eigen::MatrixXd posMat{a_particle.getPosition()};
     if (posMat.rows() < 3 && posMat.cols() > 0) {
       std::cerr << "Dimensionality of particle init is incorrect." << std::endl;
@@ -76,17 +81,14 @@ TEST_CASE("PSO Curve fitting with heavy tailed distributions")
     // Fitness, the larger the better
     // double const fitness{1.0 / (std::sqrt(posMat.cols() * (yRef -
     // y).square().mean()))};
-    double const fitness{
-        1.0 / (posMat.cols() * std::sqrt((yNoisy - y).square().mean()))};
+    double const fitness{1.0 /
+        (std::pow(posMat.cols(), psoSettings->alpha) *
+            std::sqrt((yNoisy - y).square().mean()))};
 
     return fitness;
   };
-  Eigen::Index optimumCounter;
-  yNoisy.abs().matrix().maxCoeff(&optimumCounter);
-
-  std::shared_ptr<PsoSettings> psoSettings = std::make_shared<PsoSettings>();
   psoSettings->objectiveFunction = evaluate;
-  psoSettings->maxCol = 1;
+  psoSettings->maxCol = 4;
   psoSettings->particleRow = 3; //  dimensionality
   psoSettings->particleCol = 1; // initial number of bump guesses
   psoSettings->swarmSize = 10000;
@@ -95,7 +97,7 @@ TEST_CASE("PSO Curve fitting with heavy tailed distributions")
   psoSettings->posMax = Eigen::ArrayXd{{yNoisy.maxCoeff(), x.maxCoeff(), 0.4}};
   // psoSettings->initialGuess = Eigen::ArrayXd{{yRef(optimumCounter),
   // x(optimumCounter), 0.2}}; // not used
-  psoSettings->alpha = 1.0;
+  psoSettings->alpha = 0.5;
   psoSettings->dt = 1.0;
   psoSettings->speedMax = 1.1;
   psoSettings->maxInertia = 1.4; // exploration vs exploitation
@@ -120,9 +122,9 @@ TEST_CASE("PSO Curve fitting with heavy tailed distributions")
   gnuplot << "plot"
           << gnuplot.binFile1d(gnudataNoisy, "record", "noisyreference.dat")
           << "with lines title 'Reference'"
-          // << ","
-          // << gnuplot.binFile1d(gnudataClean, "record", "clearnreference.dat")
-          // << "with lines title 'Clean ref'"
+          << ","
+          << gnuplot.binFile1d(gnudataClean, "record", "clearnreference.dat")
+          << "with lines title 'Clean ref'"
           << "," << gnuplot.binFile1d(gnudataNoisy, "record", "fit.dat")
           << "with lines title 'Fit'" << std::endl;
 

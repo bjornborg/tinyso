@@ -27,7 +27,7 @@
 #include <eigen3/Eigen/Dense>
 
 Eigen::ArrayXd gaussianMembershipFunction(
-    Eigen::ArrayXd const x, Eigen::ArrayXd const &a_position)
+    Eigen::ArrayXd const &x, Eigen::ArrayXd const &a_position)
 {
   // 2023-09-04 10:37:14 bb | Individual data,
   // 0: amplitude
@@ -43,7 +43,7 @@ Eigen::ArrayXd gaussianMembershipFunction(
 }
 
 Eigen::ArrayXd superpositionGaussians(
-    Eigen::ArrayXd const x, Eigen::MatrixXd const &a_position)
+    Eigen::ArrayXd const &x, Eigen::MatrixXd const &a_position)
 {
   Eigen::ArrayXd y;
   //  = gaussianMembershipFunction(x, a_particle);
@@ -57,7 +57,7 @@ Eigen::ArrayXd superpositionGaussians(
 
 
 Eigen::ArrayXd gaussianMembershipHeavyTailFunction(
-    Eigen::ArrayXd const x, Eigen::ArrayXd const &a_position)
+    Eigen::ArrayXd const &x, Eigen::ArrayXd const &a_position)
 {
 
   // 2024-11-22 10:05:31 bb | Assuming onset at 0, offset at 1
@@ -80,7 +80,7 @@ Eigen::ArrayXd gaussianMembershipHeavyTailFunction(
 }
 
 Eigen::ArrayXd superpositionGaussiansHeavyTail(
-    Eigen::ArrayXd const x, Eigen::MatrixXd const &a_position)
+    Eigen::ArrayXd const &x, Eigen::MatrixXd const &a_position)
 {
   Eigen::ArrayXd y;
   //  = gaussianMembershipFunction(x, a_particle);

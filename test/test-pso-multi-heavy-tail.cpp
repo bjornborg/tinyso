@@ -30,8 +30,8 @@
 #include "reaching.hpp"
 #include "tinypso.hpp"
 
-#include <format>
-#include <fstream>
+// #include <format>
+// #include <fstream>
 
 
 // Check how well it can fit a heavy tail
@@ -40,7 +40,7 @@ TEST_CASE("PSO Curve fitting with heavy tailed distributions")
 
   std::random_device rd{};
   std::mt19937 gen{rd()};
-  std::normal_distribution d{0.0, 0.01};
+  std::normal_distribution d{0.0, 0.1};
 
   Eigen::MatrixXd solution(5, 3);
   solution <<
@@ -65,7 +65,7 @@ TEST_CASE("PSO Curve fitting with heavy tailed distributions")
     n = d(gen);
   }
   Eigen::ArrayXd const yClean = superpositionGaussiansHeavyTail(x, solution);
-  Eigen::ArrayXd const yNoisy = yClean;
+  Eigen::ArrayXd const yNoisy = yClean + noise;
 
   auto evaluate = [&x, &yNoisy](Particle const &a_particle) -> double {
     Eigen::MatrixXd posMat{a_particle.getPosition()};
@@ -123,9 +123,9 @@ TEST_CASE("PSO Curve fitting with heavy tailed distributions")
   gnuplot << "plot"
           << gnuplot.binFile1d(gnudataNoisy, "record", "noisyreference.dat")
           << "with lines title 'Reference'"
-          // << ","
-          // << gnuplot.binFile1d(gnudataClean, "record", "clearnreference.dat")
-          // << "with lines title 'Clean ref'"
+          << ","
+          << gnuplot.binFile1d(gnudataClean, "record", "clearnreference.dat")
+          << "with lines title 'Clean ref'"
           << "," << gnuplot.binFile1d(gnudataNoisy, "record", "fit.dat")
           << "with lines title 'Fit'" << std::endl;
 
@@ -139,12 +139,6 @@ TEST_CASE("PSO Curve fitting with heavy tailed distributions")
     return true;
   }};
   psoSettings->plotFunction = plot;
-  psoSettings->printResultFunction = [](Particle const &particle,
-                                         std::shared_ptr<PsoSettings>) {
-    auto const fitness = particle.getBestFitness();
-    std::clog << "Best Particle fitness  = " << std::get<0>(fitness) << "\n"
-              << std::get<1>(fitness) << std::endl;
-  };
   // Run the optimization and get the results
   Particle const particle = pso.runOptimization();
   auto const fitness = particle.getBestFitness();
